@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+src/backend/node_modules/
+
+# Production builds
+dist/
+src/backend/dist/
+
+# Cloudflare & Wrangler local files
+.wrangler/
+.wrangler_config/
+.wrangler_logs/
+src/backend/.wrangler/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.development
+
+# Build & Visualizer stats
+stats.html
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

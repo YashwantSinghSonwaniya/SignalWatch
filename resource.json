@@ -1,0 +1,53 @@
+{
+  "title": "SignalWatch Disruption & Safety Alerts",
+  "description": "Structured schema for real-time safety disruption alerts, severe weather warnings, flood advisories, and emergency bulletins.",
+  "componentScope": {
+    "supportedIntents": [
+      {
+        "intent": "safety-alert-lookup",
+        "description": "Queries requesting live safety advisories, meteorological warnings, flood risks, heat watches, or disruption status for a specific city, state, or current location.",
+        "example": [
+          "weather alerts in Houston",
+          "flood warnings in Colorado",
+          "severe weather alerts in Alaska",
+          "is there a heat advisory in Phoenix",
+          "weather alerts near me",
+          "weather alerts in Delhi"
+        ]
+      }
+    ]
+  },
+  "schema": {
+    "$defs": {
+      "hazardType": {
+        "type": "string",
+        "description": "Hazard classification such as flood, tornado, heat, winter storm, severe weather, wind, fire, or hurricane."
+      },
+      "severity": {
+        "type": "string",
+        "description": "Severity level: Extreme, Severe, Moderate, Minor, or Unknown."
+      }
+    },
+    "type": "object",
+    "description": "Query object defining the safety disruption request.",
+    "properties": {
+      "type": {
+        "type": "string",
+        "description": "Query type: 'alerts' or 'status'."
+      },
+      "filters": {
+        "type": "object",
+        "description": "Filters to target specific hazards or severity ratings.",
+        "properties": {
+          "hazard": { "$ref": "#/$defs/hazardType" },
+          "severity": { "$ref": "#/$defs/severity" }
+        },
+        "additionalProperties": true
+      },
+      "entities": {
+        "collections": ["CITIES", "STATES", "COUNTRIES", "HD_LOCATION"]
+      }
+    },
+    "required": ["type", "filters", "entities"]
+  }
+}
