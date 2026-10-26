@@ -1,6 +1,6 @@
 {
-  "name": "signalwatch",
-  "version": "1.0.0",
+  "name": "@yashwant2008/weather-hazard",
+  "version": "1.0.1",
   "source": "src/frontend/index.jsx",
   "main": "dist/index.umd.js",
   "module": "dist/frontend/index.modern.js",

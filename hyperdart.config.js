@@ -56,5 +56,5 @@ export default {
   },
 
   github: 'https://github.com/yashwantsingh/signalwatch',
-  demovideo: 'https://www.youtube.com/watch?v=kXYiU_JCYtU'
+  demovideo: 'https://youtu.be/z-G_Uy_1Uu4'
 };
