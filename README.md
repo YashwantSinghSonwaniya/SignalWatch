@@ -198,16 +198,105 @@ npm --prefix src/backend install
 npm start
 ```
 
+### Local scenario runner
+
+Open `http://localhost:5173/local-test.html` for a simple scenario picker. It starts in
+**Simulated fixtures** mode and offers Houston active alerts, Colorado floods, Phoenix heat,
+Delhi unsupported coverage, Houston with no alerts, and a simulated API/network failure. The
+orange simulation banner and telemetry label identify synthetic alerts. Choose **Live NWS
+request** for a real request through `VITE_API_URL` (if configured) with the component's direct
+NWS fallback. Delhi and the simulated failure are intentionally unavailable in live mode.
+
+The standard HyperDart page at `/` remains the platform sandbox. Its search box submits queries
+to HyperDart's remote local-query resolver; a query the resolver cannot match may replace the
+seed fixture with empty results. Use `/local-test.html` for deterministic scenarios without
+depending on that resolver. To check the external API directly from a terminal, run
+`npm run test:live`.
+
+#### Diagnosing standard sandbox searches
+
+The standard sandbox's fixture and the local scenario runner exercise different paths. The
+fixture is the initial `HDSandbox` input. Submitting a query in the standard sandbox calls the
+installed HyperDart sandbox resolver; the scenario runner supplies its selected search data
+directly to SignalWatch and does not test those resolver calls.
+
+To inspect a standard sandbox query in Chrome:
+
+1. Open `http://localhost:5173/`, then open DevTools (`View` → `Developer` → `Developer Tools`).
+2. Select **Network**, enable **Preserve log**, clear the request list, and submit one query.
+3. Filter requests by `sandboxNLUEngine` or `sandbox-query-object`.
+4. Inspect both requests' **Status** and **Response** tabs:
+   - `GET /nodeapi/search/sandboxNLUEngine?...` should return JSON containing `searchData`.
+   - `POST /nodeapi/component/sandbox-query-object?...` should return JSON containing `searchData`;
+     its request payload should include `resource` and the component name.
+5. For a successful result, check that `searchData` is a non-empty array and each item intended
+   for this component has `component: "signalwatch"`. A non-2xx status, failed request, invalid
+   JSON, or an empty/missing `searchData` response points to the resolver/request path; capture
+   that status and response before changing component rendering code.
+
+The installed sandbox calls both routes and displays an empty result if neither returns matching
+data. Its request errors are also logged in the browser console. This is a limitation of the
+standard local resolver path, not evidence that the deterministic scenario runner or NWS request
+failed. The official React + Vite + Express template also passes the resource JSON object to
+`HDSandbox`; this project's protected `src/sandbox/main.jsx` currently does not, so its query
+object resolver request has no configured resource. The official initialization pattern is:
+
+```jsx
+import resourceJson from '../../resource.json';
+
+<HDSandbox config={hDConfig} searchData={defaultSearchData} resource={resourceJson} />
+```
+
+Repository instructions prohibit editing `src/sandbox/`, so the initialization mismatch remains
+for an authorized follow-up. Do not use the local scenario runner as proof that the standard
+HyperDart resolver or portal integration works.
+
+MUI's `adaptV4Theme()` deprecation warning is emitted from the installed `@hyperdart/sandbox`
+theme code, which imports and calls that MUI compatibility helper. SignalWatch does not call it.
+The warning is separate from both the local API connection and SearchData resolver results; it
+should be addressed in the HyperDart sandbox dependency rather than hidden in the app console.
+
 ### 3. Start Backend Worker Locally (Optional)
 ```bash
-# In a separate terminal, starts Cloudflare Worker dev server on port 3001
-cd src/backend && npx wrangler dev
+# In Terminal 1, from the project root, start Vite on port 5173
+npm start
+
+# In Terminal 2, from the project root, start Wrangler on port 3001
+cd src/backend
+npm start
 ```
+
+`.env.development` currently sets `VITE_API_URL=http://127.0.0.1:3001`, so SignalWatch tries
+the local backend first. The backend process is Wrangler (`src/backend/package.json`), and
+`src/backend/wrangler.jsonc` configures its port as `3001`. If it is stopped, the browser reports
+`ERR_CONNECTION_REFUSED`; SignalWatch then attempts its direct NWS fallback. The backend is not
+required for the component to try that fallback, but both processes should be running for a clean
+local demo using the configured API URL. Restart Vite after changing `.env.development`.
+
+To check that the backend is listening, run this in another terminal:
+
+```bash
+curl -i http://127.0.0.1:3001/api/message
+```
+
+The expected response is HTTP 200 with a JSON message. An alert request can be checked with:
+
+```bash
+curl -i 'http://127.0.0.1:3001/api/alerts?lat=29.76328&lon=-95.36327'
+```
+
+The alert result may contain zero active alerts; that is still a successful API response.
 
 ### 4. Run Automated Test Suite
 ```bash
-# Executes 36 automated unit & integration tests with Vitest
+# Executes deterministic unit & integration tests with Vitest
 npm test
+```
+
+### Live NWS integration check
+```bash
+# Makes a real request to api.weather.gov for Houston; an empty alert list is still a successful request
+npm run test:live
 ```
 
 ### 5. Production Build
@@ -226,18 +315,18 @@ node scripts/validate-publish.js
 
 ## 7. Automated Test Results
 
-The test suite contains **36 deterministic tests** across 4 test suites:
+The test suite contains **40 deterministic tests** across 4 test suites:
 
 ```
  RUN  v5.0.5 /Users/yashwantsinghsonwaniya/Desktop/HyperDart
 
  ✓ tests/publishValidation.test.js (5 tests)
  ✓ tests/nwsClient.test.js (13 tests)
- ✓ tests/normalizeSearchData.test.js (11 tests)
- ✓ tests/SignalWatchComponent.test.jsx (7 tests)
+ ✓ tests/normalizeSearchData.test.js (13 tests)
+ ✓ tests/SignalWatchComponent.test.jsx (9 tests)
 
  Test Files  4 passed (4)
-      Tests  36 passed (36)
+      Tests  40 passed (40)
    Duration  1.38s
 ```
 

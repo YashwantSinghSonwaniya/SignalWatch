@@ -2,10 +2,12 @@
  * Deterministic Test Fixtures for SignalWatch Tests
  */
 
+const relativeTime = (offsetMs) => new Date(Date.now() + offsetMs).toISOString();
+
 export const mockHoustonGeoJson = {
   type: 'FeatureCollection',
   features: [],
-  updated: '2026-10-26T07:00:00+00:00'
+  updated: relativeTime(0)
 };
 
 export const mockColoradoFloodsGeoJson = {
@@ -36,10 +38,10 @@ export const mockColoradoFloodsGeoJson = {
         certainty: 'Likely',
         areaDesc: 'Boulder County; Larimer County',
         sent: '2026-10-26T12:00:00Z',
-        effective: '2026-10-26T12:00:00Z',
-        onset: '2026-10-26T12:00:00Z',
-        expires: '2026-10-26T20:00:00Z',
-        ends: '2026-10-26T20:00:00Z',
+        effective: relativeTime(-60_000),
+        onset: relativeTime(-60_000),
+        expires: relativeTime(6 * 60 * 60_000),
+        ends: relativeTime(6 * 60 * 60_000),
         status: 'Actual',
         messageType: 'Alert',
         category: 'Met',
@@ -49,7 +51,7 @@ export const mockColoradoFloodsGeoJson = {
       }
     }
   ],
-  updated: '2026-10-26T12:05:00Z'
+  updated: relativeTime(0)
 };
 
 export const mockAlaskaSevereGeoJson = {
@@ -67,8 +69,8 @@ export const mockAlaskaSevereGeoJson = {
         urgency: 'Expected',
         certainty: 'Observed',
         areaDesc: 'Northern and Western Alaska Coastal Zones',
-        effective: '2026-10-26T10:00:00Z',
-        expires: '2026-10-27T10:00:00Z',
+        effective: relativeTime(-60_000),
+        expires: relativeTime(24 * 60 * 60_000),
         instruction: 'A Blizzard Warning means severe winter weather conditions are expected or occurring. Falling and blowing snow with strong winds will bring near-zero visibility. Deeply discourage travel.',
         description: 'Whiteout conditions expected. Winds gusting up to 60 mph with wind chills to 35 below zero.',
         senderName: 'NWS Fairbanks AK'
@@ -86,15 +88,15 @@ export const mockAlaskaSevereGeoJson = {
         urgency: 'Expected',
         certainty: 'Likely',
         areaDesc: 'Anchorage Bowl',
-        effective: '2026-10-26T11:00:00Z',
-        expires: '2026-10-26T23:00:00Z',
+        effective: relativeTime(-30_000),
+        expires: relativeTime(12 * 60 * 60_000),
         instruction: 'Fasten loose outdoor objects. Watch for falling tree limbs.',
         description: 'East winds 40 to 55 mph with gusts up to 75 mph along the hillside.',
         senderName: 'NWS Anchorage AK'
       }
     }
   ],
-  updated: '2026-10-26T11:30:00Z'
+  updated: relativeTime(0)
 };
 
 export const mockPhoenixHeatGeoJson = {
@@ -112,15 +114,15 @@ export const mockPhoenixHeatGeoJson = {
         urgency: 'Expected',
         certainty: 'Likely',
         areaDesc: 'Central Phoenix; Northwest Valley; Southeast Valley',
-        effective: '2026-10-26T17:00:00Z',
-        expires: '2026-10-27T03:00:00Z',
+        effective: relativeTime(-30_000),
+        expires: relativeTime(12 * 60 * 60_000),
         instruction: 'Drink plenty of fluids, stay in an air-conditioned room, stay out of the sun, and check up on relatives and neighbors. Young children and pets should never be left unattended in vehicles under any circumstances.',
         description: 'Dangerously hot conditions with temperatures up to 115 degrees expected.',
         senderName: 'NWS Phoenix AZ'
       }
     }
   ],
-  updated: '2026-10-26T16:00:00Z'
+  updated: relativeTime(0)
 };
 
 export const mockDuplicateAndExpiredGeoJson = {
@@ -137,8 +139,8 @@ export const mockDuplicateAndExpiredGeoJson = {
         urgency: 'Future',
         certainty: 'Possible',
         areaDesc: 'Zone A',
-        effective: '2026-10-26T00:00:00Z',
-        expires: '2026-10-28T00:00:00Z'
+        effective: relativeTime(-60 * 60_000),
+        expires: relativeTime(48 * 60 * 60_000)
       }
     },
     // Duplicate of active alert
@@ -152,8 +154,8 @@ export const mockDuplicateAndExpiredGeoJson = {
         urgency: 'Future',
         certainty: 'Possible',
         areaDesc: 'Zone A',
-        effective: '2026-10-26T00:00:00Z',
-        expires: '2026-10-28T00:00:00Z'
+        effective: relativeTime(-60 * 60_000),
+        expires: relativeTime(48 * 60 * 60_000)
       }
     },
     // Expired alert (expired yesterday)
@@ -167,8 +169,8 @@ export const mockDuplicateAndExpiredGeoJson = {
         urgency: 'Past',
         certainty: 'Observed',
         areaDesc: 'Zone B',
-        effective: '2026-10-20T00:00:00Z',
-        expires: '2026-10-21T00:00:00Z'
+        effective: relativeTime(-48 * 60 * 60_000),
+        expires: relativeTime(-24 * 60 * 60_000)
       }
     },
     // Missing optional fields (no instruction, no headline, no description)
@@ -178,7 +180,7 @@ export const mockDuplicateAndExpiredGeoJson = {
         id: 'alert-minimal-3',
         event: 'Wind Advisory',
         severity: 'Minor',
-        expires: '2026-10-29T00:00:00Z'
+        expires: relativeTime(72 * 60 * 60_000)
       }
     }
   ]

@@ -24,6 +24,82 @@ import {
   LoadingSkeletonView
 } from './components/StateViews.jsx';
 
+function buildAlertRequestParams(normalized) {
+  const params = new URLSearchParams();
+
+  if (normalized.latitude != null && normalized.longitude != null) {
+    params.append('lat', String(normalized.latitude));
+    params.append('lon', String(normalized.longitude));
+  } else if (normalized.stateAbb) {
+    params.append('area', normalized.stateAbb);
+  }
+
+  return params;
+}
+
+function AlertResults({
+  alerts,
+  selectedHazard,
+  setSelectedHazard,
+  processedAlerts,
+  isCompact,
+  normalized,
+}) {
+  if (!processedAlerts.length) {
+    return (
+      <div className="sw-state-card" style={{ padding: '24px' }}>
+        <p className="sw-state-desc">
+          No active alerts match the filter <strong>{selectedHazard.toUpperCase()}</strong>.
+        </p>
+        <button
+          type="button"
+          className="sw-theme-btn"
+          style={{ marginTop: '8px' }}
+          onClick={() => setSelectedHazard(HAZARD_CATEGORIES.ALL)}
+        >
+          Show All Active Alerts ({alerts.length})
+        </button>
+      </div>
+    );
+  }
+
+  return isCompact ? (
+    <div className="sw-alerts-column">
+      <RadarZoneMap
+        location={normalized}
+        alerts={processedAlerts}
+        isCompact={true}
+      />
+      {processedAlerts.map((alert) => (
+        <AlertCard
+          key={alert.id}
+          alert={alert}
+          timezone={normalized.timezone}
+        />
+      ))}
+    </div>
+  ) : (
+    <div className="sw-main-split">
+      <div className="sw-alerts-column">
+        {processedAlerts.map((alert) => (
+          <AlertCard
+            key={alert.id}
+            alert={alert}
+            timezone={normalized.timezone}
+          />
+        ))}
+      </div>
+      <div className="sw-map-column">
+        <RadarZoneMap
+          location={normalized}
+          alerts={processedAlerts}
+          isCompact={false}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function SignalWatch(props) {
   // Extract configuration and injected props
   const {
@@ -32,7 +108,8 @@ export default function SignalWatch(props) {
     format = 'mainline',
     theme,
     deployedBackendURL,
-    messageHandlers
+    messageHandlers,
+    dataSourceLabel = 'NWS Live API'
   } = props;
 
   const isCompact = format === 'sidebar';
@@ -103,14 +180,7 @@ export default function SignalWatch(props) {
       // Try backend if API_URL is available
       if (API_URL) {
         try {
-          const params = new URLSearchParams();
-          if (normalized.latitude != null && normalized.longitude != null) {
-            params.append('lat', String(normalized.latitude));
-            params.append('lon', String(normalized.longitude));
-          } else if (normalized.stateAbb) {
-            params.append('area', normalized.stateAbb);
-          }
-
+          const params = buildAlertRequestParams(normalized);
           const resp = await fetch(`${API_URL}/api/alerts?${params.toString()}`);
           if (!resp.ok) {
             throw new Error(`Backend service error: ${resp.status}`);
@@ -127,6 +197,8 @@ export default function SignalWatch(props) {
             updatedTime = json.updated || new Date().toISOString();
           } else if (json.success === false) {
             throw new Error(json.error || 'Failed to retrieve safety alerts from backend.');
+          } else {
+            throw new Error('Malformed response received from the alert service.');
           }
         } catch (backendErr) {
           // Graceful fallback to direct NWS client if backend is unreachable locally
@@ -213,6 +285,7 @@ export default function SignalWatch(props) {
           alerts={alerts}
           placeName={normalized.placeName}
           timezone={normalized.timezone}
+          dataSourceLabel={dataSourceLabel}
         />
       )}
 
@@ -220,9 +293,10 @@ export default function SignalWatch(props) {
       <HeroStatusCard
         normalizedLocation={normalized}
         status={status}
-        alerts={processedAlerts}
+        alerts={alerts}
         lastUpdated={lastUpdated}
         format={format}
+        dataSourceLabel={dataSourceLabel}
       />
 
       {/* Conditional State Views */}
@@ -247,6 +321,7 @@ export default function SignalWatch(props) {
         <NoActiveAlertsView
           location={normalized}
           targetHazard={normalized.targetHazard}
+          dataSourceLabel={dataSourceLabel}
         />
       )}
 
@@ -260,61 +335,18 @@ export default function SignalWatch(props) {
             totalCount={processedAlerts.length}
           />
 
-          {processedAlerts.length === 0 ? (
-            <div className="sw-state-card" style={{ padding: '24px' }}>
-              <p className="sw-state-desc">
-                No active alerts match the filter <strong>{selectedHazard.toUpperCase()}</strong>.
-              </p>
-              <button
-                type="button"
-                className="sw-theme-btn"
-                style={{ marginTop: '8px' }}
-                onClick={() => setSelectedHazard(HAZARD_CATEGORIES.ALL)}
-              >
-                Show All Active Alerts ({alerts.length})
-              </button>
-            </div>
-          ) : isCompact ? (
-            /* Sidebar layout: Stacked single column */
-            <div className="sw-alerts-column">
-              <RadarZoneMap
-                location={normalized}
-                alerts={processedAlerts}
-                isCompact={true}
-              />
-              {processedAlerts.map((alert) => (
-                <AlertCard
-                  key={alert.id}
-                  alert={alert}
-                  timezone={normalized.timezone}
-                />
-              ))}
-            </div>
-          ) : (
-            /* Mainline layout: 2-column split with Tactical Map on the right */
-            <div className="sw-main-split">
-              <div className="sw-alerts-column">
-                {processedAlerts.map((alert) => (
-                  <AlertCard
-                    key={alert.id}
-                    alert={alert}
-                    timezone={normalized.timezone}
-                  />
-                ))}
-              </div>
-              <div className="sw-map-column">
-                <RadarZoneMap
-                  location={normalized}
-                  alerts={processedAlerts}
-                  isCompact={false}
-                />
-              </div>
-            </div>
-          )}
+          <AlertResults
+            alerts={alerts}
+            selectedHazard={selectedHazard}
+            setSelectedHazard={setSelectedHazard}
+            processedAlerts={processedAlerts}
+            isCompact={isCompact}
+            normalized={normalized}
+          />
         </>
       )}
 
-      <SafetyDisclaimer />
+      <SafetyDisclaimer dataSourceLabel={dataSourceLabel} />
     </div>
   );
 }

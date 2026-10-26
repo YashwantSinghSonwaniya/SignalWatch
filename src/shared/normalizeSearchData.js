@@ -41,7 +41,7 @@ export function normalizeSearchData(searchData, rawSearchQuery = '') {
   if (isNearMe && (userCoords.latitude != null || userCoords.lat != null)) {
     latitude = userCoords.latitude ?? userCoords.lat;
     longitude = userCoords.longitude ?? userCoords.long ?? userCoords.lon;
-    countryCode = userCountryCode || 'US';
+    countryCode = userCountryCode;
     placeName = 'Current Location';
     timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     source = 'userLocation';
@@ -62,6 +62,23 @@ export function normalizeSearchData(searchData, rawSearchQuery = '') {
     countryCode = userCountryCode;
     placeName = 'Current Location';
     source = 'userLocation';
+  }
+
+  // Coordinates are useful only as a valid pair. A partial or nonnumeric
+  // entity must not turn into an NWS request for an unresolved location.
+  const parsedLatitude = latitude == null ? null : Number(latitude);
+  const parsedLongitude = longitude == null ? null : Number(longitude);
+  if (
+    Number.isFinite(parsedLatitude) &&
+    Number.isFinite(parsedLongitude) &&
+    parsedLatitude >= -90 && parsedLatitude <= 90 &&
+    parsedLongitude >= -180 && parsedLongitude <= 180
+  ) {
+    latitude = parsedLatitude;
+    longitude = parsedLongitude;
+  } else {
+    latitude = null;
+    longitude = null;
   }
 
   // Fallback state extraction from query if state is missing
@@ -87,6 +104,13 @@ export function normalizeSearchData(searchData, rawSearchQuery = '') {
     }
   }
 
+  // A recognized US state abbreviation is enough to identify NWS coverage
+  // when a fixture/entity omits the redundant country metadata.
+  if (!countryCode && !country && stateAbb) {
+    countryCode = 'US';
+    country = 'United States';
+  }
+
   // Determine coverage
   let isSupportedCoverage = true;
   let unsupportedReason = '';
@@ -109,16 +133,19 @@ export function normalizeSearchData(searchData, rawSearchQuery = '') {
   // Question query detection: "is there a [hazard] in [location]"
   const questionInfo = extractQuestionInfo(query);
 
+  const hasCoverageEvidence = Boolean(countryCode || country || stateAbb);
+  const hasLocationCoordinates = latitude != null && longitude != null;
+
   return {
     rawQuery: query,
     placeName: placeName || (state ? state : 'Unknown Location'),
     state,
     stateAbb,
     country: country || (countryCode === 'US' ? 'United States' : countryCode),
-    countryCode: countryCode || (isSupportedCoverage ? 'US' : 'UNKNOWN'),
-    timezone: timezone || 'America/New_York',
-    latitude: latitude != null ? Number(latitude) : null,
-    longitude: longitude != null ? Number(longitude) : null,
+    countryCode: countryCode || 'UNKNOWN',
+    timezone: timezone || 'UTC',
+    latitude,
+    longitude,
     source,
     isNearMe,
     isSupportedCoverage,
@@ -126,9 +153,9 @@ export function normalizeSearchData(searchData, rawSearchQuery = '') {
     targetHazard,
     questionInfo,
     isValidLocation: Boolean(
-      (latitude != null && longitude != null) ||
-      stateAbb ||
-      (placeName && isSupportedCoverage)
+      isSupportedCoverage && (
+        hasCoverageEvidence && (hasLocationCoordinates || Boolean(stateAbb))
+      )
     )
   };
 }

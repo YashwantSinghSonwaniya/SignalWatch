@@ -6,7 +6,8 @@ export default function HeroStatusCard({
   status,
   alerts,
   lastUpdated,
-  format
+  format,
+  dataSourceLabel = 'NWS Live API'
 }) {
   const { placeName, state, stateAbb, country, timezone, latitude, longitude, isNearMe } = normalizedLocation;
 
@@ -17,8 +18,8 @@ export default function HeroStatusCard({
 
   const topAlert = alerts.length > 0 ? alerts[0] : null;
 
-  let pillClass = 'clear';
-  let pillText = 'No Active Disruption';
+  let pillClass = 'info';
+  let pillText = 'Status Not Verified';
 
   if (status === ALERT_STATUS.UNSUPPORTED_COVERAGE) {
     pillClass = 'unsupported';
@@ -26,6 +27,18 @@ export default function HeroStatusCard({
   } else if (status === ALERT_STATUS.API_ERROR) {
     pillClass = 'warning';
     pillText = 'Service Communication Alert';
+  } else if (status === ALERT_STATUS.LOADING) {
+    pillClass = 'info';
+    pillText = 'Checking NWS Alerts';
+  } else if (status === ALERT_STATUS.INVALID_LOCATION) {
+    pillClass = 'warning';
+    pillText = 'Location Unresolved';
+  } else if (status === ALERT_STATUS.MALFORMED_DATA) {
+    pillClass = 'warning';
+    pillText = 'Alert Data Not Verified';
+  } else if (status === ALERT_STATUS.NO_ALERTS) {
+    pillClass = 'clear';
+    pillText = 'No Active Disruption';
   } else if (totalAlerts > 0) {
     const highestRank = topAlert?.severityRank || 0;
     if (highestRank >= 4) {
@@ -41,7 +54,12 @@ export default function HeroStatusCard({
       pillClass = 'info';
       pillText = 'WATCH / NOTICE ACTIVE';
     }
+  } else if (status === ALERT_STATUS.ACTIVE_ALERTS) {
+    pillClass = 'info';
+    pillText = 'Active Alerts Available';
   }
+
+  const countsVerified = [ALERT_STATUS.ACTIVE_ALERTS, ALERT_STATUS.NO_ALERTS].includes(status);
 
   // Format local clock if timezone is available
   const formattedTime = new Date().toLocaleTimeString('en-US', {
@@ -85,35 +103,35 @@ export default function HeroStatusCard({
         <div className="sw-stat-box">
           <span className="sw-stat-label">Active Alerts</span>
           <span className={`sw-stat-val ${totalAlerts > 0 ? 'red' : 'green'}`}>
-            {status === ALERT_STATUS.UNSUPPORTED_COVERAGE ? '—' : totalAlerts}
+            {countsVerified ? totalAlerts : '—'}
           </span>
         </div>
 
         <div className="sw-stat-box">
           <span className="sw-stat-label">Warnings</span>
           <span className={`sw-stat-val ${warningsCount > 0 ? 'red' : ''}`}>
-            {warningsCount}
+            {countsVerified ? warningsCount : '—'}
           </span>
         </div>
 
         <div className="sw-stat-box">
           <span className="sw-stat-label">Watches</span>
           <span className={`sw-stat-val ${watchesCount > 0 ? 'orange' : ''}`}>
-            {watchesCount}
+            {countsVerified ? watchesCount : '—'}
           </span>
         </div>
 
         <div className="sw-stat-box">
           <span className="sw-stat-label">Advisories</span>
           <span className="sw-stat-val">
-            {advisoriesCount}
+            {countsVerified ? advisoriesCount : '—'}
           </span>
         </div>
 
         <div className="sw-stat-box">
           <span className="sw-stat-label">Telemetry Feed</span>
           <span className="sw-stat-val" style={{ fontSize: '0.82rem', fontFamily: 'var(--sw-font-mono)', color: 'var(--sw-text-muted)' }}>
-            NWS Live API
+            {dataSourceLabel}
           </span>
         </div>
       </div>

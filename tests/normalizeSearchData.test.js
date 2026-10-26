@@ -68,6 +68,37 @@ describe('normalizeSearchData', () => {
   it('identifies invalid or missing locations gracefully', () => {
     const result = normalizeSearchData(searchDataMissingLocation);
     expect(result.isValidLocation).toBe(false);
+    expect(result.countryCode).toBe('UNKNOWN');
+    expect(result.latitude).toBeNull();
+    expect(result.longitude).toBeNull();
+  });
+
+  it('rejects partial or out-of-range coordinates instead of treating them as a location', () => {
+    const result = normalizeSearchData({
+      query: 'weather alerts near me',
+      entities: [],
+      userLocation: {
+        position: { coords: { latitude: 120 }, countryCode: 'US' }
+      }
+    });
+
+    expect(result.latitude).toBeNull();
+    expect(result.longitude).toBeNull();
+    expect(result.isValidLocation).toBe(false);
+  });
+
+  it('does not assume NWS coverage when coordinates have no country or state metadata', () => {
+    const result = normalizeSearchData({
+      query: 'weather alerts near me',
+      entities: [],
+      userLocation: {
+        position: { coords: { latitude: 28.6139, longitude: 77.209 } }
+      }
+    });
+
+    expect(result.countryCode).toBe('UNKNOWN');
+    expect(result.isSupportedCoverage).toBe(true);
+    expect(result.isValidLocation).toBe(false);
   });
 });
 

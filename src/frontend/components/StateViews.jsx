@@ -48,9 +48,10 @@ export function UnsupportedCoverageView({ location, query }) {
 /**
  * Supported Location with No Active Alerts
  */
-export function NoActiveAlertsView({ location, targetHazard }) {
+export function NoActiveAlertsView({ location, targetHazard, dataSourceLabel = 'NWS Live API' }) {
   const place = location.placeName || (location.stateAbb ? location.stateAbb : 'this location');
   const hazardName = targetHazard && targetHazard !== 'all' ? `${targetHazard} ` : '';
+  const isSimulation = /simulated/i.test(dataSourceLabel);
 
   return (
     <div className="sw-state-card" role="region" aria-label="No Active Alerts Found">
@@ -66,7 +67,9 @@ export function NoActiveAlertsView({ location, targetHazard }) {
       </h3>
 
       <p className="sw-state-desc">
-        No active {hazardName}warnings, watches, or advisories were returned for <strong>{place}</strong> by the National Weather Service at this time.
+        {isSimulation
+          ? <>No simulated {hazardName}warning, watch, or advisory records were included for <strong>{place}</strong> in this fixture.</>
+          : <>No active {hazardName}warnings, watches, or advisories were returned for <strong>{place}</strong> by the National Weather Service at this time.</>}
       </p>
 
       <div style={{
@@ -78,7 +81,9 @@ export function NoActiveAlertsView({ location, targetHazard }) {
         maxWidth: '460px',
         lineHeight: 1.4
       }}>
-        SignalWatch continuously polls official emergency bulletins. Rapidly evolving weather events can trigger warnings with minimal advance notice. Stay alert to changing local conditions.
+        {isSimulation
+          ? 'This is a simulated test fixture and does not describe current conditions. Use the live NWS mode or official local sources for real alerts.'
+          : 'SignalWatch continuously polls official emergency bulletins. Rapidly evolving weather events can trigger warnings with minimal advance notice. Stay alert to changing local conditions.'}
       </div>
     </div>
   );

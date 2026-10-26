@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function DirectAnswerBanner({ questionInfo, alerts = [], placeName, timezone }) {
+export default function DirectAnswerBanner({ questionInfo, alerts = [], placeName, timezone, dataSourceLabel = 'NWS Live API' }) {
   if (!questionInfo || !questionInfo.isQuestion) {
     return null;
   }
@@ -26,6 +26,7 @@ export default function DirectAnswerBanner({ questionInfo, alerts = [], placeNam
   });
 
   const hasAnswer = Boolean(matchingAlert);
+  const isSimulation = /simulated/i.test(dataSourceLabel);
 
   return (
     <div className="sw-direct-answer" role="region" aria-label="Direct Query Answer">
@@ -43,7 +44,9 @@ export default function DirectAnswerBanner({ questionInfo, alerts = [], placeNam
           </>
         ) : (
           <>
-            No active <strong>{phrase}</strong> was returned for <strong>{targetPlace}</strong> from official National Weather Service reports.
+            {isSimulation
+              ? <>No matching test fixture for <strong>{phrase}</strong> was included for <strong>{targetPlace}</strong>.</>
+              : <>No active <strong>{phrase}</strong> was returned for <strong>{targetPlace}</strong> from official National Weather Service reports.</>}
           </>
         )}
       </p>

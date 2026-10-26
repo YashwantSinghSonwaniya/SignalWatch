@@ -1,6 +1,7 @@
 import React from 'react';
 
-export default function SafetyDisclaimer() {
+export default function SafetyDisclaimer({ dataSourceLabel = 'NWS Live API' }) {
+  const isSimulation = /simulated/i.test(dataSourceLabel);
   return (
     <footer className="sw-disclaimer" role="contentinfo">
       <div className="sw-disclaimer-icon" aria-hidden="true">
@@ -12,8 +13,9 @@ export default function SafetyDisclaimer() {
       </div>
       <div>
         <strong>Public Safety & Accuracy Notice: </strong>
-        SignalWatch ingests unadulterated meteorological warning feeds directly from the United States National Weather Service (NOAA).
-        This interface is for informational awareness. In an active life-threatening crisis, civil defense orders, evacuation mandates, and 911 emergency broadcasts supersede digital aggregators.
+        {isSimulation
+          ? 'This local view uses synthetic test fixtures and does not report current conditions or official alerts. Do not use simulated data for safety decisions.'
+          : 'SignalWatch ingests unadulterated meteorological warning feeds directly from the United States National Weather Service (NOAA). This interface is for informational awareness. In an active life-threatening crisis, civil defense orders, evacuation mandates, and 911 emergency broadcasts supersede digital aggregators.'}
       </div>
     </footer>
   );

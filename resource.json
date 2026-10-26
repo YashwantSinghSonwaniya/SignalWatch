@@ -33,6 +33,7 @@
     "properties": {
       "type": {
         "type": "string",
+        "enum": ["alerts", "status"],
         "description": "Query type: 'alerts' or 'status'."
       },
       "filters": {
@@ -45,7 +46,15 @@
         "additionalProperties": true
       },
       "entities": {
-        "collections": ["CITIES", "STATES", "COUNTRIES", "HD_LOCATION"]
+        "type": "object",
+        "description": "Entity collections needed to resolve the requested place.",
+        "properties": {
+          "collections": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["CITIES", "STATES", "COUNTRIES", "HD_LOCATION"] }
+          }
+        },
+        "required": ["collections"]
       }
     },
     "required": ["type", "filters", "entities"]

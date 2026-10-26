@@ -38,9 +38,11 @@
     "react-router-dom": "^7.0.0"
   },
   "scripts": {
+    "dev": "vite",
     "start": "vite",
     "build": "vite build && npm --prefix src/backend run build",
     "test": "vitest run",
+    "test:live": "node scripts/live-nws-check.js",
     "prepublishOnly": "node scripts/validate-publish.js"
   },
   "files": [

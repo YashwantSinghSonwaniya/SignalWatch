@@ -9,7 +9,8 @@ import {
   searchDataHouston,
   searchDataColoradoFloods,
   searchDataDelhi,
-  searchDataPhoenixHeatQuestion
+  searchDataPhoenixHeatQuestion,
+  searchDataMissingLocation
 } from './fixtures/alertsFixtures.js';
 
 describe('SignalWatch Component Integration', () => {
@@ -43,7 +44,26 @@ describe('SignalWatch Component Integration', () => {
 
     // Verify it does NOT claim all clear
     expect(screen.queryByText(/No Active Disruption/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Outside NWS Coverage/i)).toBeInTheDocument();
     expect(componentLoadedMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows unresolved location instead of an all-clear state when search data has no location', async () => {
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock;
+
+    render(
+      <SignalWatch
+        searchData={searchDataMissingLocation}
+        searchQuery="are there any warnings"
+        format="mainline"
+      />
+    );
+
+    expect(await screen.findByText(/Location Unresolved/i)).toBeInTheDocument();
+    expect(screen.getByText(/Unknown Location/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No Active Disruption/i)).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('renders "No Matching Active Alerts" for a supported location with zero alerts (Houston)', async () => {
@@ -70,6 +90,26 @@ describe('SignalWatch Component Integration', () => {
 
     expect(screen.getByText(/Houston, TX/i)).toBeInTheDocument();
     expect(componentLoadedMock).toHaveBeenCalled();
+  });
+
+  it('labels a simulated empty response as test data instead of attributing it to the NWS', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockHoustonGeoJson
+    });
+
+    render(
+      <SignalWatch
+        searchData={searchDataHouston}
+        searchQuery="weather alerts in Houston"
+        dataSourceLabel="SIMULATED FIXTURE"
+      />
+    );
+
+    expect(await screen.findByText(/No Matching Active Alerts/i)).toBeInTheDocument();
+    expect(screen.getByText(/No simulated warning, watch, or advisory records/i)).toBeInTheDocument();
+    expect(screen.getByText(/does not describe current conditions/i)).toBeInTheDocument();
+    expect(screen.queryByText(/were returned .*National Weather Service/i)).not.toBeInTheDocument();
   });
 
   it('renders active alerts and details for Colorado flood warnings', async () => {
@@ -190,5 +230,7 @@ describe('SignalWatch Component Integration', () => {
 
     expect(screen.getByText(/Network connection dropped/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Retry Connection/i })).toBeInTheDocument();
+    expect(screen.getByText(/Service Communication Alert/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No Active Disruption/i)).not.toBeInTheDocument();
   });
 });

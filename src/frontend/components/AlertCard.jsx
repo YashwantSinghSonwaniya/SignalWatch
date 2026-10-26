@@ -19,6 +19,133 @@ function formatCountdown(targetTime) {
   return `${minutes}m remaining`;
 }
 
+function formatDate(isoString, timezone) {
+  if (!isoString) return 'Not specified';
+  try {
+    return new Date(isoString).toLocaleString('en-US', {
+      timeZone: timezone || 'America/New_York',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
+  } catch {
+    return isoString;
+  }
+}
+
+function AlertBadge({ severity, label, tone = 'default' }) {
+  const severityClass = (severity || 'unknown').toLowerCase();
+  return (
+    <span
+      className={`sw-badge ${tone === 'subtle' ? 'subtle' : severityClass}`}
+      aria-label={`${label}: ${severity || label}`}
+    >
+      {label === 'Severity' ? `${severity} Severity` : label}
+    </span>
+  );
+}
+
+function CountdownBadge({ expires, timezone, countdown }) {
+  if (!expires || !countdown || countdown === 'Expired') return null;
+
+  return (
+    <div className="sw-countdown-badge" title={`Alert expires at ${formatDate(expires, timezone)}`}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+      <span>{countdown}</span>
+    </div>
+  );
+}
+
+function TimingBlock({ label, value, timezone }) {
+  return (
+    <div className="sw-time-item">
+      <span className="sw-time-label">{label}</span>
+      <span>{formatDate(value, timezone)}</span>
+    </div>
+  );
+}
+
+function ExpandablePanel({ title, isOpen, onToggle, children, label }) {
+  return (
+    <div style={{ marginTop: '6px' }}>
+      <button
+        type="button"
+        className="sw-expand-btn"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+      >
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          style={{ transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s ease' }}
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+        <span>{isOpen ? `Hide ${title}` : `View ${title}`}</span>
+      </button>
+      {isOpen && (
+        <div className="sw-expanded-body" tabIndex="0" role="region" aria-label={label}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AlertHeader({ alert, timezone, countdown }) {
+  return (
+    <div className="sw-card-header">
+      <div className="sw-card-title-group">
+        <div className="sw-badges-row">
+          <AlertBadge severity={alert.severity} label="Severity" />
+          {alert.urgency && alert.urgency !== 'Unknown' && (
+            <AlertBadge label={alert.urgency} tone="subtle" />
+          )}
+          {alert.certainty && alert.certainty !== 'Unknown' && (
+            <AlertBadge label={alert.certainty} tone="subtle" />
+          )}
+        </div>
+        <h3 id={`alert-heading-${alert.id}`} className="sw-event-title">
+          {alert.event}
+        </h3>
+      </div>
+
+      <CountdownBadge expires={alert.expires} timezone={timezone} countdown={countdown} />
+    </div>
+  );
+}
+
+function AlertFooter({ alert }) {
+  return (
+    <div className="sw-card-footer">
+      <span className="sw-sender-text">Source: {alert.senderName}</span>
+      <a
+        href={alert.webUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="sw-official-link"
+        title="Verify directly on National Weather Service bulletin"
+      >
+        <span>Verify Official NWS Bulletin</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+          <polyline points="15 3 21 3 21 9" />
+          <line x1="10" y1="14" x2="21" y2="3" />
+        </svg>
+      </a>
+    </div>
+  );
+}
+
 export default function AlertCard({ alert, timezone }) {
   const [showFullInstructions, setShowFullInstructions] = useState(false);
   const [showMeteorologicalDesc, setShowMeteorologicalDesc] = useState(false);
@@ -34,72 +161,17 @@ export default function AlertCard({ alert, timezone }) {
 
   const severityClass = (alert.severity || 'unknown').toLowerCase();
 
-  const formatDate = (isoString) => {
-    if (!isoString) return 'Not specified';
-    try {
-      return new Date(isoString).toLocaleString('en-US', {
-        timeZone: timezone || 'America/New_York',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZoneName: 'short'
-      });
-    } catch {
-      return isoString;
-    }
-  };
-
   return (
     <article className={`sw-alert-card ${severityClass}`} aria-labelledby={`alert-heading-${alert.id}`}>
-      <div className="sw-card-header">
-        <div className="sw-card-title-group">
-          <div className="sw-badges-row">
-            <span className={`sw-badge ${severityClass}`} aria-label={`Severity: ${alert.severity}`}>
-              {alert.severity} Severity
-            </span>
-            {alert.urgency && alert.urgency !== 'Unknown' && (
-              <span className="sw-badge subtle" aria-label={`Urgency: ${alert.urgency}`}>
-                {alert.urgency}
-              </span>
-            )}
-            {alert.certainty && alert.certainty !== 'Unknown' && (
-              <span className="sw-badge subtle" aria-label={`Certainty: ${alert.certainty}`}>
-                {alert.certainty}
-              </span>
-            )}
-          </div>
-          <h3 id={`alert-heading-${alert.id}`} className="sw-event-title">
-            {alert.event}
-          </h3>
-        </div>
-
-        {alert.expires && countdown && countdown !== 'Expired' && (
-          <div className="sw-countdown-badge" title={`Alert expires at ${formatDate(alert.expires)}`}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-            <span>{countdown}</span>
-          </div>
-        )}
-      </div>
+      <AlertHeader alert={alert} timezone={timezone} countdown={countdown} />
 
       <p className="sw-card-headline">{alert.headline}</p>
 
-      {/* Start and Expiry Timestamps */}
       <div className="sw-timing-box">
-        <div className="sw-time-item">
-          <span className="sw-time-label">Active From:</span>
-          <span>{formatDate(alert.onset || alert.effective)}</span>
-        </div>
-        <div className="sw-time-item">
-          <span className="sw-time-label">Expires:</span>
-          <span>{formatDate(alert.expires)}</span>
-        </div>
+        <TimingBlock label="Active From:" value={alert.onset || alert.effective} timezone={timezone} />
+        <TimingBlock label="Expires:" value={alert.expires} timezone={timezone} />
       </div>
 
-      {/* Affected Area */}
       <div className="sw-area-box">
         <span className="sw-area-icon" aria-hidden="true">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -114,7 +186,6 @@ export default function AlertCard({ alert, timezone }) {
         </div>
       </div>
 
-      {/* Plain Language Action Guidance */}
       <div className="sw-action-box">
         <div className="sw-action-header">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
@@ -124,89 +195,32 @@ export default function AlertCard({ alert, timezone }) {
           </svg>
           <span>Recommended Official Actions</span>
         </div>
-        <p className="sw-action-content">
-          {alert.plainInstruction}
-        </p>
+        <p className="sw-action-content">{alert.plainInstruction}</p>
       </div>
 
-      {/* Expandable Full Official Instructions if available */}
       {alert.instruction && (
-        <div style={{ marginTop: '6px' }}>
-          <button
-            type="button"
-            className="sw-expand-btn"
-            onClick={() => setShowFullInstructions(!showFullInstructions)}
-            aria-expanded={showFullInstructions}
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              style={{ transform: showFullInstructions ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s ease' }}
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-            <span>{showFullInstructions ? 'Hide Full Official Instructions' : 'View Full Official Instructions'}</span>
-          </button>
-          {showFullInstructions && (
-            <div className="sw-expanded-body" tabIndex="0" role="region" aria-label="Official Instructions">
-              {alert.instruction}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Expandable Meteorological Bulletin Description */}
-      {alert.description && (
-        <div style={{ marginTop: '6px' }}>
-          <button
-            type="button"
-            className="sw-expand-btn"
-            onClick={() => setShowMeteorologicalDesc(!showMeteorologicalDesc)}
-            aria-expanded={showMeteorologicalDesc}
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              style={{ transform: showMeteorologicalDesc ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s ease' }}
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-            <span>{showMeteorologicalDesc ? 'Hide Meteorological Synopsis' : 'View Meteorological Synopsis'}</span>
-          </button>
-          {showMeteorologicalDesc && (
-            <div className="sw-expanded-body" tabIndex="0" role="region" aria-label="Meteorological Description">
-              {alert.description}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Card Footer */}
-      <div className="sw-card-footer">
-        <span className="sw-sender-text">Source: {alert.senderName}</span>
-        <a
-          href={alert.webUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="sw-official-link"
-          title="Verify directly on National Weather Service bulletin"
+        <ExpandablePanel
+          title="Full Official Instructions"
+          label="Official Instructions"
+          isOpen={showFullInstructions}
+          onToggle={() => setShowFullInstructions((value) => !value)}
         >
-          <span>Verify Official NWS Bulletin</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-            <polyline points="15 3 21 3 21 9" />
-            <line x1="10" y1="14" x2="21" y2="3" />
-          </svg>
-        </a>
-      </div>
+          {alert.instruction}
+        </ExpandablePanel>
+      )}
+
+      {alert.description && (
+        <ExpandablePanel
+          title="Meteorological Synopsis"
+          label="Meteorological Description"
+          isOpen={showMeteorologicalDesc}
+          onToggle={() => setShowMeteorologicalDesc((value) => !value)}
+        >
+          {alert.description}
+        </ExpandablePanel>
+      )}
+
+      <AlertFooter alert={alert} />
     </article>
   );
 }

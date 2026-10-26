@@ -1,5 +1,6 @@
 [
   {
+    "component": "signalwatch",
     "query": "weather alerts in Houston",
     "entities": [
       {
